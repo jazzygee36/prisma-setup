@@ -6,6 +6,7 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
+import { LogineUserDto } from './dto/login-user.dto';
 
 @Injectable()
 export class UserService {
@@ -36,5 +37,28 @@ export class UserService {
       }
       throw new InternalServerErrorException('An unexpected error occurred');
     }
+  }
+
+  async loginUser(logineUserDto: LogineUserDto): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { email: logineUserDto.email },
+    });
+    if (!user) {
+      throw new ConflictException('Invalid credentials');
+    }
+    const isPasswordMatching = await bcrypt.compare(
+      logineUserDto.password,
+      user.password,
+    );
+    if (!isPasswordMatching) {
+      throw new ConflictException('Password does not match');
+    }
+    return { message: 'Login successful' };
+  }
+
+  async findOne(createUserDto: CreateUserDto): Promise<any | null> {
+    return this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
+    });
   }
 }
